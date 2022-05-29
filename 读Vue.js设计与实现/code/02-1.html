@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>02.响应式数据的基本实现</title>
+</head>
+<body>
+  <p>姓名：<span id="name"></span></p>
+  <p>年龄：<span id="age"></span></p>
+
+  <button id="btn">切换</button>
+  <script>
+    let activeEffect = null
+    const depsMap = new Map() // key => new Set(fn1、fn2、fn3)
+
+    function reactive(data) {
+      return new Proxy(data, {
+        get(target, key) {
+          if (!activeEffect) {
+            return target[key]
+          }
+          let deps = depsMap.get(key)
+          if (!deps) {
+            // 没有在类型桶中，则新建一个
+            depsMap.set(key, (deps = new Set()))
+          }
+          deps.add(activeEffect) // 添加上当前存储的fn
+          return target[key]
+        },
+        set(target, key, newVal) {
+          target[key] = newVal
+
+          const deps = depsMap.get(key)
+          if (deps) {
+            deps.forEach(fn => fn())
+          }
+        }
+      })
+    }
+
+    function effect(fn) {
+      activeEffect = fn
+      fn()
+    }
+
+
+
+    const obj = reactive({
+      name: '小明',
+      age: 12
+    })
+
+    effect(() => {
+      document.querySelector('#name').innerText = obj.name
+    })
+
+    effect(() => {
+      document.querySelector('#age').innerText = obj.age
+    })
+
+    document.querySelector('#btn').addEventListener('click', () => {
+      obj.name = '小红'
+      setTimeout(() => {
+        obj.age = 13
+      }, 1000)
+    })
+
+  </script>
+</body>
+</html>
