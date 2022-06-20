@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>02.响应式数据的基本实现</title>
+</head>
+<body>
+  <p>姓名：<span id="name"></span></p>
+
+  <button id="btn">切换</button>
+  <button id="changeName">changeName</button>
+
+  <script type="module">
+    import { reactive, effect } from './core.js'
+    const obj = reactive({
+      ok: true,
+      name: '小明',
+    })
+
+    effect(() => {
+      console.log('run')
+      document.querySelector('#name').innerText = obj.ok ? obj.name : 'not'
+    })
+
+    document.querySelector('#btn').addEventListener('click', () => {
+      obj.ok = !obj.ok
+    })
+    document.querySelector('#changeName').addEventListener('click', () => {
+      obj.name += 1
+    })
+  </script>
+</body>
+</html>

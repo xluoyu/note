@@ -1,6 +1,6 @@
 let activeEffect = null
 const bucket = new WeakMap() // data => new Map()
-
+window.bucket = bucket
 export function reactive(data) {
   return new Proxy(data, {
     get(target, key) {
@@ -14,39 +14,48 @@ export function reactive(data) {
     }
   })
 }
-
 function track(target, key) {
-  if (!activeEffect) {
-    return target[key]
-  }
-  // 根据target从“桶”中取得depsMap， 它是一个Map类型: key -> effects
   let depsMap = bucket.get(target)
   if (!depsMap) {
-    // 如果不存在， 则创建一个新的Map与target关联
     bucket.set(target, (depsMap = new Map()))
   }
-  // 根据key从depsMap中取得effects，它是一个Set类型: effects
-  // 这里记录着当前key的所有副作用函数
   let deps = depsMap.get(key)
   if (!deps) {
-    // 没有，则新建一个Set，并且将其与key关联
     depsMap.set(key, (deps = new Set()))
   }
-  // 添加上当前存储的fn
   deps.add(activeEffect)
+  activeEffect.deps.push(deps)
 }
 
 function trigger(target, key) {
-  // 根据target从“桶”中取得depsMap， 它是一个Map类型: key -> effects
   const depsMap = bucket.get(target)
   if (!depsMap) return
-  // 根据key从depsMap中取得effects，它是一个Set类型: effects
   const effects = depsMap.get(key)
-  // 执行所有副作用函数
-  effects && effects.forEach(fn => fn())
+
+  const effectsToRun = new Set(effects)
+  effectsToRun.forEach(effectFn => effectFn())
+  
+  // effects && effects.forEach(effectFn => effectFn())
 }
 
+// 用一个全局变量存储当前激活的 effect 函数
 export function effect(fn) {
-  activeEffect = fn
-  fn()
+  const effectFn = () => {
+    cleanup(effectFn)
+    // 当调用 effect 注册副作用函数时，将副作用函数复制给 activeEffect
+    activeEffect = effectFn
+    fn()
+  }
+  // activeEffect.deps 用来存储所有与该副作用函数相关的依赖集合
+  effectFn.deps = []
+  // 执行副作用函数
+  effectFn()
+}
+
+function cleanup(effectFn) {
+  for (let i = 0; i < effectFn.deps.length; i++) {
+    const deps = effectFn.deps[i]
+    deps.delete(effectFn)
+  }
+  effectFn.deps.length = 0
 }

@@ -1,4 +1,5 @@
 let activeEffect = null
+const effectStack = []
 const bucket = new WeakMap() // data => new Map()
 window.bucket = bucket
 export function reactive(data) {
@@ -23,6 +24,7 @@ function track(target, key) {
   if (!deps) {
     depsMap.set(key, (deps = new Set()))
   }
+  if (!activeEffect) return
   deps.add(activeEffect)
   activeEffect.deps.push(deps)
 }
@@ -31,10 +33,9 @@ function trigger(target, key) {
   const depsMap = bucket.get(target)
   if (!depsMap) return
   const effects = depsMap.get(key)
-
-  const effectsToRun = new Set()
-  effects && effects.forEach(effectFn => effectsToRun.add(effectFn))
+  const effectsToRun = new Set(effects)
   effectsToRun.forEach(effectFn => effectFn())
+  
   // effects && effects.forEach(effectFn => effectFn())
 }
 
@@ -44,7 +45,11 @@ export function effect(fn) {
     cleanup(effectFn)
     // 当调用 effect 注册副作用函数时，将副作用函数复制给 activeEffect
     activeEffect = effectFn
+    effectStack.push(effectFn)
     fn()
+    // 弹出
+    effectStack.pop()
+    activeEffect = effectStack[effectStack.length - 1]
   }
   // activeEffect.deps 用来存储所有与该副作用函数相关的依赖集合
   effectFn.deps = []

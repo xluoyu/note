@@ -7,28 +7,31 @@
   <title>02.响应式数据的基本实现</title>
 </head>
 <body>
-  <p>姓名：<span id="name"></span></p>
-
-  <button id="btn">切换</button>
-  <button id="changeName">changeName</button>
+  <button id="btn">effect1 切换名称</button>
+  <button id="changeName">effect2 加1</button>
 
   <script type="module">
+    // import { reactive, effect } from '../03-1/core.js'
     import { reactive, effect } from './core.js'
     const obj = reactive({
-      ok: true,
-      name: '小明',
+      bar: '小明',
+      foo: 1,
     })
+    // var emo1, emo2;
 
-    effect(() => {
-      console.log('run')
-      document.querySelector('#name').innerText = obj.ok ? obj.name : 'not'
+    effect(function effect1 () {
+      console.log('effect1', obj.bar)
+
+      effect(function effect2 () {
+        console.log('effect2', obj.foo)
+      })
     })
 
     document.querySelector('#btn').addEventListener('click', () => {
-      obj.ok = false
+      obj.bar = obj.bar === '小明' ? '小红' : '小明'
     })
     document.querySelector('#changeName').addEventListener('click', () => {
-      obj.name += 1
+      obj.foo++
     })
   </script>
 </body>
