@@ -34,9 +34,12 @@ function trigger(target, key) {
   if (!depsMap) return
   const effects = depsMap.get(key)
   const effectsToRun = new Set(effects)
-  effectsToRun.forEach(effectFn => effectFn())
-  
-  // effects && effects.forEach(effectFn => effectFn())
+  effectsToRun.forEach(effectFn => {
+    // 与当前的activeEffect相同，为避免无限循环，不触发执行
+    if (effectFn !== activeEffect) {
+      effectFn()
+    }
+  })
 }
 
 // 用一个全局变量存储当前激活的 effect 函数
