@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>02.响应式数据的基本实现</title>
+</head>
+<body>
+
+<script type="module">
+  import { reactive, effect } from './core.js'
+  
+  // 创建一个任务列表
+  const jobQueue = new Set()
+  const q = Promise.resolve() // 创建一个微任务环境
+
+  // 正在刷新队列
+  let isFlushing = false
+  function flushJob () {
+    // 如果正在刷新，不执行
+    if (isFlushing) return
+    isFlushing = true // 更改状态
+    q.then(() => {
+      jobQueue.forEach(job => job())
+    }).finally(() => {
+      // 当执行结束时，重置状态
+      isFlushing = false
+    })
+  }
+
+
+  const obj = reactive({
+    foo: 1,
+  })
+
+  effect(() => {
+    console.log(obj.foo)
+  }, {
+    scheduler(effectFn) {
+      jobQueue.add(effectFn) // 将当前副作用函数添加到待执行列表中
+      flushJob() // 调用执行
+    }
+  })
+
+  obj.foo++
+  obj.foo++
+</script>
+</body>
+</html>
