@@ -53,16 +53,24 @@ export function effect(fn, options = {}) {
     // 当调用 effect 注册副作用函数时，将副作用函数复制给 activeEffect
     activeEffect = effectFn
     effectStack.push(effectFn)
-    fn()
+    const res = fn()
     // 弹出
     effectStack.pop()
     activeEffect = effectStack[effectStack.length - 1]
+
+    return res
   }
   effectFn.options = options
   // activeEffect.deps 用来存储所有与该副作用函数相关的依赖集合
   effectFn.deps = []
-  // 执行副作用函数
-  effectFn()
+
+  // 非lazy时，才会立即执行
+  if (!options.lazy) {
+    // 执行副作用函数
+    effectFn()
+  }
+
+  return effectFn
 }
 
 function cleanup(effectFn) {
@@ -71,4 +79,32 @@ function cleanup(effectFn) {
     deps.delete(effectFn)
   }
   effectFn.deps.length = 0
+}
+
+export function computed(getter) {
+  let value // 缓存上次计算的值
+  let dirty = true // 是否需要重新计算
+
+  const effectFn = effect(getter, {
+    lazy: true,
+    scheduler() {
+      // 添加一个调度器，当数据改变触发了trigger时，就会调用`scheduler`函数，此时我们就将dirty改为true，在下次获取值时重新执行函数。
+      dirty = true
+      trigger(obj, 'value')
+    }
+  })
+
+  const obj = {
+    get value() {
+      if (dirty) {
+        value = effectFn()
+        // 将dirty设置为false, 那么下次取值时不会重新计算
+        dirty = false
+      }
+      track(obj, 'value')
+      return value
+    }
+  }
+
+  return obj
 }

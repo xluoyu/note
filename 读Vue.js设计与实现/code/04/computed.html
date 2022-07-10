@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <script type="module">
+  import { reactive, effect, computed } from './core.js'
+  const obj = reactive({
+    foo: 1,
+    bar: 2
+  })
+
+  const res = computed(() => {
+    return obj.foo + obj.bar
+  })
+
+  effect(() => {
+    console.log(res.value)
+  })
+
+  obj.foo++
+
+  console.log(res.value)
+
+
+  </script>
+</body>
+</html>
