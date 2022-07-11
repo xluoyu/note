@@ -9,22 +9,20 @@
 <body>
 
   <script type="module">
-    import { reactive, effect } from './core.js'
+    import { reactive, watch } from './core.js'
     const obj = reactive({
       foo: 1,
     })
 
-    effect(() => {
-      console.log(obj.foo)
-    }, {
-      scheduler(effectFn) {
-        setTimeout(effectFn, 0) // 将代码执行到下一个宏任务再执行
-      }
+    watch(() => obj.foo, () => {
+      console.log('obj.foo 发生了改变')
     })
 
-    obj.foo++
+    obj.foo = 2
 
-    console.log('结束了')
+    setTimeout(() => {
+      obj.foo++
+    }, 800)
   </script>
 </body>
 </html>
