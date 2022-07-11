@@ -108,3 +108,45 @@ export function computed(getter) {
 
   return obj
 }
+
+
+function traverse(value, seen = new Set()) {
+  // 不考虑原始值、null、已读取过的情况
+  if (typeof value !== 'object' || value === null || seen.has(value)) {
+    return
+  }
+
+  seen.add(value)
+
+  // 先考虑对象，使用for...in遍历对象的所有属性
+  for (const k in value) {
+    traverse(value[k], seen)
+  }
+
+  return value
+}
+
+export function watch(source, cb) {
+  let getter
+
+  if (typeof source === 'function') {
+    getter = source
+  } else {
+    getter = () => traverse(source)
+  }
+  let oldValue, newValue;
+
+  const effectFn = effect( // 将副作用函数返回出来
+    () => getter(),
+    {
+      lazy: true, // 这里我们要用上lazy属性
+      scheduler() {
+        newValue = effectFn() // 得到新值
+        cb(newValue, oldValue)
+        oldValue = newValue // 赋给旧值
+      }
+    }
+  )
+
+  oldValue = effectFn() // 第一次执行， 得到的值赋给旧值
+}
