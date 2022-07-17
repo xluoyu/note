@@ -126,7 +126,7 @@ function traverse(value, seen = new Set()) {
   return value
 }
 
-export function watch(source, cb) {
+export function watch(source, cb, options = {}) {
   let getter
 
   if (typeof source === 'function') {
@@ -136,17 +136,32 @@ export function watch(source, cb) {
   }
   let oldValue, newValue;
 
+  // 这里将调度器的内容重新封装，方便直接调用
+  const job = () => {
+    newValue = effectFn() // 得到新值
+    cb(newValue, oldValue)
+    oldValue = newValue // 赋给旧值
+  }
+
   const effectFn = effect( // 将副作用函数返回出来
     () => getter(),
     {
       lazy: true, // 这里我们要用上lazy属性
-      scheduler() {
-        newValue = effectFn() // 得到新值
-        cb(newValue, oldValue)
-        oldValue = newValue // 赋给旧值
+      scheduler: () => {
+        // 在`flush`设置为`post`，我们将所执行的函数放至微任务中执行。
+        if (options.flush === 'post') {
+          const p = Promise.resolve()
+          p.then(job)
+        } else {
+          job()
+        }
       }
     }
   )
 
-  oldValue = effectFn() // 第一次执行， 得到的值赋给旧值
+  if (options.immediate) {
+    job()
+  } else {
+    oldValue = effectFn() // 第一次执行， 得到的值赋给旧值
+  }
 }
