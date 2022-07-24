@@ -134,12 +134,19 @@ export function watch(source, cb, options = {}) {
   } else {
     getter = () => traverse(source)
   }
-  let oldValue, newValue;
+  let oldValue, newValue, cleanup;
+
+  function onInvalidate(fn) {
+    cleanup = fn
+  }
 
   // 这里将调度器的内容重新封装，方便直接调用
   const job = () => {
     newValue = effectFn() // 得到新值
-    cb(newValue, oldValue)
+    if (cleanup) {
+      cleanup()
+    }
+    cb(newValue, oldValue, onInvalidate)
     oldValue = newValue // 赋给旧值
   }
 
